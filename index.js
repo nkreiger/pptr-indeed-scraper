@@ -33,19 +33,10 @@ let companyResults = {};
         // navigate to indeed landing page
         await navigateTo(page, Config.urls.indeed);
 
-        // input text
-        const searchInputs = await getAllElements(page, Config.selectors.indeed.inputs.search);
-        await searchInputs[0].focus();
-        await searchInputs[0].type('');
-        await searchInputs[0].type(input);
-        await searchInputs[1].focus();
-        await searchInputs[1].click({ clickCount: 3 });
-        await searchInputs[1].type('');
-        await searchInputs[1].type(location);
-        // submit search
-        const submit = await getElement(page, Config.selectors.indeed.inputs.submit);
-        await submit.click({ clickCount: 2 });
-        await page.waitForNavigation();
+        // grab input fields
+        await inputSearchParams(page, Config.selectors.indeed.inputs.search, input, location);
+        // submit result
+        await submit(page, Config.selectors.indeed.inputs.submit);
 
         // gather results
         let next = true;
@@ -128,4 +119,21 @@ const checkExists = async (page, selector) => {
 const checkNext = async (page, selector) => {
     const el = await getAllElements(page, selector);
     return el.length === 2;
+};
+
+const inputSearchParams = async (page, selector, input, location) => {
+    const searchInputs = await getAllElements(page, selector.main);
+    // focus clear type
+    searchInputs[0].focus();
+    await Common.clearTextField(page, selector.desc);
+    await Common.type(searchInputs[0], input);
+
+    searchInputs[1].focus();
+    await Common.clearTextField(page, selector.loc);
+    await Common.type(searchInputs[1], location);
+};
+
+const submit = async (page, selector) => {
+    const submitBtn = await getElement(page, selector);
+    await Common.navigateClick(page, submitBtn, Config.selectors.indeed.results.row, true);
 };

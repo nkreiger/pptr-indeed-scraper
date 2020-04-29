@@ -1,7 +1,11 @@
 const selectors = {
     indeed: {
         inputs: {
-            search: "input[id$='what'],input[id$='where']",
+            search: {
+                main: "input[id$='what'],input[id$='where']",
+                desc: "input[id$='what']",
+                loc: "input[id$='where']",
+            },
             submit: "button[class$='WhatWhere-button']"
         },
         results: {

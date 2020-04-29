@@ -4,36 +4,18 @@
 
 const puppeteer = require('puppeteer');
 const delay = require('delay');
+const Common = require('common');
+import { selectors, urls } from 'config';
 
-// settings
-const urls = {
-    indeed: 'https://www.indeed.com/'
-};
-
+// results
 let companyResults = {};
-
-const selectors = {
-    indeed: {
-        inputs: {
-            search: "input[id$='what'],input[id$='where']",
-            submit: "button[class$='WhatWhere-button']"
-        },
-        results: {
-            next: "span[class='np']",
-            row: "div[class*='unifiedRow']",
-            popover: "div[id*='popover']",
-            closePopover: "a[class*='popover-x-button-close']",
-            company: "span[class='company'"
-        }
-    }
-};
 
 (async (args) => {
     /* at end to run
     const input = args[2];
     const location = args[3];
      */
-    const input = 'google';
+    const input = 'engineer';
     const location = 'pittsburgh, pa';
 
     try {
@@ -54,11 +36,11 @@ const selectors = {
         const searchInputs = await getAllElements(page, selectors.indeed.inputs.search);
         await searchInputs[0].focus();
         await searchInputs[0].type('');
-        await searchInputs[0].type('google');
+        await searchInputs[0].type(input);
         await searchInputs[1].focus();
         await searchInputs[1].click({ clickCount: 3 });
         await searchInputs[1].type('');
-        await searchInputs[1].type('New York, NY');
+        await searchInputs[1].type(location);
         // submit search
         const submit = await getElement(page, selectors.indeed.inputs.submit);
         await submit.click({ clickCount: 2 });
@@ -96,7 +78,6 @@ const navigateTo = async (page, url) => {
 const addResults = async (page, results) => {
     for (let result in results) {
         const data = await (await results[result].getProperty('innerText')).jsonValue();
-        console.log(companyResults[data]);
         if (companyResults[data] >= 1) {
             let currResults = companyResults[data];
             currResults++;

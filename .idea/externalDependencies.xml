@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ExternalDependencies">
+    <plugin id="Docker" />
+    <plugin id="JavaScriptDebugger" />
+    <plugin id="intellij.prettierJS" />
+    <plugin id="org.jetbrains.plugins.vue" />
+    <plugin id="tslint" />
+  </component>
+</project>

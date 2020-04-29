@@ -8,7 +8,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
+  "author": "Noah Kreiger",
   "license": "ISC",
   "dependencies": {
     "delay": "^4.3.0",

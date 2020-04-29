@@ -1,4 +1,4 @@
-export const selectors = {
+const selectors = {
     indeed: {
         inputs: {
             search: "input[id$='what'],input[id$='where']",
@@ -13,7 +13,11 @@ export const selectors = {
         }
     }
 };
-
-export const urls = {
+const urls = {
     indeed: 'https://www.indeed.com/'
+};
+
+module.exports = {
+    selectors,
+    urls
 };

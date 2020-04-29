@@ -1,13 +1,14 @@
-class Common {
-    async clearTextField(page, selector) {
-        await page.evaluate(selector => {
-            document.querySelector(selector).value = "";
-        }, selector);
-    }
+const clearTextField = async (page, selector) => {
+    await page.evaluate(selector => {
+        document.querySelector(selector).value = "";
+    }, selector);
+};
 
-    async click(element, count) {
-        await element.click({ clickCount: count })
-    }
-}
+const click = async (element, count) => {
+    await element.click({clickCount: count})
+};
 
-module.exports = Common;
+module.exports = {
+    clearTextField,
+    click
+};

@@ -2,10 +2,11 @@
  * Scrapes Job Postings based on an input value
  */
 
+
 const puppeteer = require('puppeteer');
 const delay = require('delay');
-const Common = require('common');
-import { selectors, urls } from 'config';
+const Common = require('./common');
+const Config = require('./config');
 
 // results
 let companyResults = {};
@@ -30,10 +31,10 @@ let companyResults = {};
         });
 
         // navigate to indeed landing page
-        await navigateTo(page, urls.indeed);
+        await navigateTo(page, Config.urls.indeed);
 
         // input text
-        const searchInputs = await getAllElements(page, selectors.indeed.inputs.search);
+        const searchInputs = await getAllElements(page, Config.selectors.indeed.inputs.search);
         await searchInputs[0].focus();
         await searchInputs[0].type('');
         await searchInputs[0].type(input);
@@ -42,20 +43,20 @@ let companyResults = {};
         await searchInputs[1].type('');
         await searchInputs[1].type(location);
         // submit search
-        const submit = await getElement(page, selectors.indeed.inputs.submit);
+        const submit = await getElement(page, Config.selectors.indeed.inputs.submit);
         await submit.click({ clickCount: 2 });
         await page.waitForNavigation();
 
         // gather results
         let next = true;
         do {
-            let results = await getAllElements(page, selectors.indeed.results.company);
+            let results = await getAllElements(page, Config.selectors.indeed.results.company);
             await addResults(page, results);
-            await clickNext(page, selectors.indeed.results.next);
-            if (await checkExists(page, selectors.indeed.results.popover)) {
-                await closePopover(page, selectors.indeed.results.closePopover);
+            await clickNext(page, Config.selectors.indeed.results.next);
+            if (await checkExists(page, Config.selectors.indeed.results.popover)) {
+                await closePopover(page, Config.selectors.indeed.results.closePopover);
             }
-            next = await checkNext(page, selectors.indeed.results.next);
+            next = await checkNext(page, Config.selectors.indeed.results.next);
         } while (next);
 
         console.log(companyResults);

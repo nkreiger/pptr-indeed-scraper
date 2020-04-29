@@ -39,6 +39,7 @@ let companyResults = {};
         await submit(page, Config.selectors.indeed.inputs.submit);
 
         // gather results
+        /*
         let next = true;
         do {
             let results = await getAllElements(page, Config.selectors.indeed.results.company);
@@ -47,6 +48,12 @@ let companyResults = {};
             if (await checkExists(page, Config.selectors.indeed.results.popover)) {
                 await closePopover(page, Config.selectors.indeed.results.closePopover);
             }
+            next = await checkNext(page, Config.selectors.indeed.results.next);
+        } while (next);
+         */
+        let next;
+        do {
+            await handleResults(page, Config.selectors.indeed.results.details);
             next = await checkNext(page, Config.selectors.indeed.results.next);
         } while (next);
 
@@ -121,6 +128,65 @@ const checkNext = async (page, selector) => {
     return el.length === 2;
 };
 
+const handleResults = async (page, selector) => {
+    const companies = await getCompanies(page, selector.company);
+    companies.forEach((company) => {
+        if (companyResults[company] && companyResults[company].count >= 1) {
+            let currCount = companyResults[company].count;
+            currCount++;
+            companyResults[company].count = currCount;
+        } else {
+            companyResults[company] = {
+                count: 1
+            }
+        }
+    });
+    let keys = Object.keys(selector);
+    keys.shift();
+    for (const el of keys) {
+        const results = await getAllElements(page, selector[el]);
+        let index = 0;
+        for (const result of results) {
+            const data = await (await result.getProperty('innerText')).jsonValue();
+            let company = companies[index];
+            if (companyResults[company][el]) {
+                let curr = companyResults[company][el];
+                curr.push(data);
+                companyResults[company][el] = curr;
+            } else {
+                let def = [];
+                def.push(data);
+                companyResults[company][el] = def;
+            }
+            index++;
+        }
+    }
+};
+
+const getCompanies = async (page, selector) => {
+    let companies = [];
+    const rows = await getAllElements(page, selector);
+    for (const row of rows) {
+        const data = await (await row.getProperty('innerText')).jsonValue();
+        companies.push(data);
+    }
+    return companies;
+};
+
+const addResult = (result) => {
+    console.log(result);
+    const parsed = result.split("\n");
+    console.log(parsed);
+};
+
+/**
+ * Clears the input field, then types the result
+ * @param page browser.Page
+ * @param selector String
+ * @param input String
+ * @param location String
+ * @returns {Promise<void>}
+ */
 const inputSearchParams = async (page, selector, input, location) => {
     const searchInputs = await getAllElements(page, selector.main);
     // focus clear type
@@ -133,6 +199,12 @@ const inputSearchParams = async (page, selector, input, location) => {
     await Common.type(searchInputs[1], location);
 };
 
+/**
+ * Clicks the button to generate results
+ * @param page browser.Page
+ * @param selector String
+ * @returns {Promise<void>}
+ */
 const submit = async (page, selector) => {
     const submitBtn = await getElement(page, selector);
     await Common.navigateClick(page, submitBtn, Config.selectors.indeed.results.row, true);

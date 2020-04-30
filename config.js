@@ -6,7 +6,7 @@ const selectors = {
                 desc: "input[id$='what']",
                 loc: "input[id$='where']",
             },
-            submit: "button[class$='WhatWhere-button']"
+            submit: "button[class$='WhatWhere-button'],input[class='input_submit']"
         },
         results: {
             next: "span[class='np']",

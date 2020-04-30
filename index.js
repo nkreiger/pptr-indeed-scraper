@@ -5,52 +5,16 @@
 
 const puppeteer = require('puppeteer');
 const delay = require('delay');
+const fs = require('fs');
 const Common = require('./common');
 const Config = require('./config');
 
 // results
 let companyResults = {};
 
-(async (args) => {
-    const input = args[2] ? args[2] : 'engineer';
-    const location = args[3] ? args[3] : 'pittsburgh, pa';
-
-    try {
-        // establish browser and page
-        const browser = await puppeteer.launch({
-            headless: false
-        });
-        const page = await browser.newPage();
-        await page.setViewport({
-            width: 1000,
-            height: 1000
-        });
-
-        // navigate to indeed landing page
-        await navigateTo(page, Config.urls.indeed);
-
-        // grab input fields
-        await inputSearchParams(page, Config.selectors.indeed.inputs.search, input, location);
-        // submit result
-        await submit(page, Config.selectors.indeed.inputs.submit);
-
-        // gather results
-        let next;
-        do {
-            await handleResults(page, Config.selectors.indeed.results.details);
-            await clickNext(page, Config.selectors.indeed.results.next);
-            if (await checkExists(page, Config.selectors.indeed.results.popover)) {
-                await closePopover(page, Config.selectors.indeed.results.closePopover);
-            }
-            next = await checkNext(page, Config.selectors.indeed.results.next);
-        } while (next);
-
-        console.log(companyResults);
-        await browser.close();
-    } catch (err) {
-        console.log('Error: ', err);
-    }
-})(process.argv);
+const readFile = (path) => {
+    return fs.readFileSync(path).toString().split("\n");
+};
 
 /**
  * Basic navigation
@@ -105,17 +69,21 @@ const checkNext = async (page, selector) => {
 
 /**
  * Handles getting and storing the search results
+ * The nested loops is a design decision allowing the program to scale as you want to remove and add properties
+ * along with the count
  * @param page browser.Page
  * @param selector String
  * @returns {Promise<void>}
  */
 const handleResults = async (page, selector) => {
     const companies = await getCompanies(page, selector.company);
+    // add company and count to result object
     companies.forEach((company) => {
         addCompanyCount(company);
     });
     let properties = Object.keys(selector);
     properties.shift();
+    // add properties
     for (const p of properties) {
         const results = await getAllElements(page, selector[p]);
         let index = 0;
@@ -124,6 +92,16 @@ const handleResults = async (page, selector) => {
             addCompanyProperty(companies[index], p, data);
             index++;
         }
+    }
+};
+
+const test = async (page) => {
+    let elements = await getAllElements(page, Config.selectors.indeed.results.row);
+    for (const el of elements) {
+        const data = await el.evaluate(el => {
+            compan
+        }, Config);
+        console.log(data);
     }
 };
 
@@ -207,3 +185,59 @@ const submit = async (page, selector) => {
     const submitBtn = await getElement(page, selector);
     await Common.navigateClick(page, submitBtn, Config.selectors.indeed.results.row, true);
 };
+
+(async () => {
+    // get .txt values
+    const args = readFile('./input/input.txt');
+    // establish browser and page
+    const browser = await puppeteer.launch({
+        headless: false
+    });
+    const page = await browser.newPage();
+    await page.setViewport({
+        width: 1000,
+        height: 1000
+    });
+    // navigate to indeed landing page
+    await navigateTo(page, Config.urls.indeed);
+    // loop through and perform search
+    for (const arg of args) {
+        if (!arg) continue; // skip empty lines
+        let input = arg.split(" ")[0].match((/[A-Za-z, ]+/))[0];
+        let location = arg.split(" ")[1].match((/[A-Za-z, ]+/));
+        try {
+            // grab input fields
+            await inputSearchParams(page, Config.selectors.indeed.inputs.search, input, location);
+            // submit result
+            await submit(page, Config.selectors.indeed.inputs.submit);
+            // delay for now
+            await delay(2000);
+            // handle popup
+            if (await checkExists(page, Config.selectors.indeed.results.popover)) {
+                await closePopover(page, Config.selectors.indeed.results.closePopover);
+            };
+
+            // await test(page);
+
+            // gather results
+            let next;
+            do {
+                next = await checkNext(page, Config.selectors.indeed.results.next);
+                await handleResults(page, Config.selectors.indeed.results.details);
+                if (next) {
+                    await clickNext(page, Config.selectors.indeed.results.next);
+                    if (await checkExists(page, Config.selectors.indeed.results.popover)) {
+                        await closePopover(page, Config.selectors.indeed.results.closePopover);
+                    };
+                }
+            } while (next);
+
+            // todo: read into excel
+            console.log(companyResults);
+        } catch (err) {
+            console.log('Error: ', err);
+        }
+    }
+    // close browser
+    await browser.close();
+})();

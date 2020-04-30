@@ -12,12 +12,8 @@ const Config = require('./config');
 let companyResults = {};
 
 (async (args) => {
-    /* at end to run
-    const input = args[2];
-    const location = args[3];
-     */
-    const input = 'engineer';
-    const location = 'pittsburgh, pa';
+    const input = args[2] ? args[2] : 'engineer';
+    const location = args[3] ? args[3] : 'pittsburgh, pa';
 
     try {
         // establish browser and page

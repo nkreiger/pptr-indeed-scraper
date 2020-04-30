@@ -54,6 +54,10 @@ let companyResults = {};
         let next;
         do {
             await handleResults(page, Config.selectors.indeed.results.details);
+            await clickNext(page, Config.selectors.indeed.results.next);
+            if (await checkExists(page, Config.selectors.indeed.results.popover)) {
+                await closePopover(page, Config.selectors.indeed.results.closePopover);
+            }
             next = await checkNext(page, Config.selectors.indeed.results.next);
         } while (next);
 
@@ -131,35 +135,42 @@ const checkNext = async (page, selector) => {
 const handleResults = async (page, selector) => {
     const companies = await getCompanies(page, selector.company);
     companies.forEach((company) => {
-        if (companyResults[company] && companyResults[company].count >= 1) {
-            let currCount = companyResults[company].count;
-            currCount++;
-            companyResults[company].count = currCount;
-        } else {
-            companyResults[company] = {
-                count: 1
-            }
-        }
+        addCompanyCount(company);
     });
-    let keys = Object.keys(selector);
-    keys.shift();
-    for (const el of keys) {
-        const results = await getAllElements(page, selector[el]);
+    let properties = Object.keys(selector);
+    properties.shift();
+    for (const p of properties) {
+        const results = await getAllElements(page, selector[p]);
         let index = 0;
         for (const result of results) {
             const data = await (await result.getProperty('innerText')).jsonValue();
-            let company = companies[index];
-            if (companyResults[company][el]) {
-                let curr = companyResults[company][el];
-                curr.push(data);
-                companyResults[company][el] = curr;
-            } else {
-                let def = [];
-                def.push(data);
-                companyResults[company][el] = def;
-            }
+            addCompanyProperty(companies[index], p, data);
             index++;
         }
+    }
+};
+
+const addCompanyCount = (company) => {
+    if (companyResults[company] && companyResults[company].count >= 1) {
+        let currCount = companyResults[company].count;
+        currCount++;
+        companyResults[company].count = currCount;
+    } else {
+        companyResults[company] = {
+            count: 1
+        }
+    }
+};
+
+const addCompanyProperty =  (company, property, data) => {
+    if (companyResults[company][property]) {
+        let curr = companyResults[company][property];
+        curr.push(data);
+        companyResults[company][property] = curr;
+    } else {
+        let def = [];
+        def.push(data);
+        companyResults[company][property] = def;
     }
 };
 

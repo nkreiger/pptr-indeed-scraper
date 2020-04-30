@@ -203,8 +203,10 @@ const submit = async (page, selector) => {
     // loop through and perform search
     for (const arg of args) {
         if (!arg) continue; // skip empty lines
-        let input = arg.split(" ")[0].match((/[A-Za-z, ]+/))[0];
-        let location = arg.split(" ")[1].match((/[A-Za-z, ]+/));
+        // assign search inputs
+        let searchInputs = arg.split(" ");
+        let input = searchInputs[0] !== "" ? searchInputs[0].match((/[A-Za-z, ]+/))[0] : "";
+        let location = searchInputs[1] !== "" ? searchInputs[1].match((/[A-Za-z, ]+/)) : "";
         try {
             // grab input fields
             await inputSearchParams(page, Config.selectors.indeed.inputs.search, input, location);

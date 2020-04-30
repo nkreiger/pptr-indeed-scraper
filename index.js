@@ -39,18 +39,6 @@ let companyResults = {};
         await submit(page, Config.selectors.indeed.inputs.submit);
 
         // gather results
-        /*
-        let next = true;
-        do {
-            let results = await getAllElements(page, Config.selectors.indeed.results.company);
-            await addResults(page, results);
-            await clickNext(page, Config.selectors.indeed.results.next);
-            if (await checkExists(page, Config.selectors.indeed.results.popover)) {
-                await closePopover(page, Config.selectors.indeed.results.closePopover);
-            }
-            next = await checkNext(page, Config.selectors.indeed.results.next);
-        } while (next);
-         */
         let next;
         do {
             await handleResults(page, Config.selectors.indeed.results.details);
@@ -78,20 +66,6 @@ const navigateTo = async (page, url) => {
     await page.goto(url);
 };
 
-const addResults = async (page, results) => {
-    for (let result in results) {
-        const data = await (await results[result].getProperty('innerText')).jsonValue();
-        if (companyResults[data] >= 1) {
-            let currResults = companyResults[data];
-            currResults++;
-            companyResults[data] = currResults;
-        } else {
-            // default to 1
-            companyResults[data] = 1;
-        }
-    }
-};
-
 const clickNext = async (page, selector) => {
     const spanBtns = await getAllElements(page, selector);
     let nxtBtn;
@@ -102,7 +76,8 @@ const clickNext = async (page, selector) => {
     }
     await nxtBtn.click();
     await delay(2000);
-}
+};
+
 /**
  * Get all elements that match the selector
  * @param page
@@ -123,7 +98,7 @@ const closePopover = async (page, selector) => {
 };
 
 const checkExists = async (page, selector) => {
-    const el = await getElement(page, selector)
+    const el = await getElement(page, selector);
     return !!el;
 };
 
@@ -132,6 +107,12 @@ const checkNext = async (page, selector) => {
     return el.length === 2;
 };
 
+/**
+ * Handles getting and storing the search results
+ * @param page browser.Page
+ * @param selector String
+ * @returns {Promise<void>}
+ */
 const handleResults = async (page, selector) => {
     const companies = await getCompanies(page, selector.company);
     companies.forEach((company) => {
@@ -150,6 +131,10 @@ const handleResults = async (page, selector) => {
     }
 };
 
+/**
+ * Adds company count
+ * @param company String
+ */
 const addCompanyCount = (company) => {
     if (companyResults[company] && companyResults[company].count >= 1) {
         let currCount = companyResults[company].count;
@@ -162,6 +147,12 @@ const addCompanyCount = (company) => {
     }
 };
 
+/**
+ * Adds company properties to that company
+ * @param company String
+ * @param property String
+ * @param data String
+ */
 const addCompanyProperty =  (company, property, data) => {
     if (companyResults[company][property]) {
         let curr = companyResults[company][property];
@@ -174,6 +165,12 @@ const addCompanyProperty =  (company, property, data) => {
     }
 };
 
+/**
+ * Returns array of companies
+ * @param page browser.Page
+ * @param selector String
+ * @returns {Promise<[]>}
+ */
 const getCompanies = async (page, selector) => {
     let companies = [];
     const rows = await getAllElements(page, selector);
@@ -182,12 +179,6 @@ const getCompanies = async (page, selector) => {
         companies.push(data);
     }
     return companies;
-};
-
-const addResult = (result) => {
-    console.log(result);
-    const parsed = result.split("\n");
-    console.log(parsed);
 };
 
 /**

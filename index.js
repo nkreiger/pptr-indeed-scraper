@@ -32,6 +32,11 @@ const formatToExcel = (result) => {
 const writeResultsExcel = (results) => {
     let fileName = format(new Date(), 'MM-dd-yyyy-k:mm:ss') + `_total.xlsx`;
     try {
+
+        if (!fs.existsSync('./output')){
+            fs.mkdirSync('./output');
+        }
+
         fs.writeFileSync(`./output/${fileName}`);
         const ws = XLSX.utils.json_to_sheet(formatToExcel(results));
         const wb = XLSX.utils.book_new();

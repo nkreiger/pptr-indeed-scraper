@@ -210,7 +210,7 @@ const submit = async (page, selector) => {
     const args = readFile('./input/input.txt');
     // establish browser and page
     const browser = await puppeteer.launch({
-        headless: false
+        headless: true
     });
     const page = await browser.newPage();
     await page.setViewport({

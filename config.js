@@ -12,12 +12,12 @@ const selectors = {
             next: "span[class='np']",
             row: "div[class*='unifiedRow']",
             details: {
-                company: "span[class='company']",
                 job_title: "h2[class='title']",
                 rating: "span[class='ratingsContent']",
                 location: "div[class*='location']",
                 summary: "div[class*='summary']"
             },
+            key: "span[class='company']",
             popover: "div[id*='popover']",
             closePopover: "a[class*='popover-x-button-close']",
         }

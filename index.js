@@ -38,6 +38,16 @@ const clickNext = async (page, selector) => {
     await delay(2000);
 };
 
+const handlePopover = async (page) => {
+    await delay(2000);
+    if (await checkExists(page, Config.selectors.indeed.results.popover)) {
+        await closePopover(page, Config.selectors.indeed.results.closePopover);
+        await delay(1000);
+        return true;
+    }
+    return false;
+};
+
 /**
  * Get all elements that match the selector
  * @param page
@@ -63,8 +73,13 @@ const checkExists = async (page, selector) => {
 };
 
 const checkNext = async (page, selector) => {
-    const el = await getAllElements(page, selector);
-    return el.length === 2;
+    // todo: use evaluate to check if next actually exists since no unique id
+    const elements = await getAllElements(page, selector);
+    for (const el of elements) {
+        const text = await Common.getElementInnerText(el);
+        if (text.toLowerCase().includes('next')) return true;
+    }
+    return false;
 };
 
 /**
@@ -75,9 +90,11 @@ const checkNext = async (page, selector) => {
  * @param selector String
  * @returns {Promise<void>}
  */
+/* Deprecated
 const handleResults = async (page, selector) => {
-    const companies = await getCompanies(page, selector.company);
+    const companies = await getCompanies(page, Config.selectors.indeed.results.key);
     // add company and count to result object
+    if (companies.length < 1) return;
     companies.forEach((company) => {
         addCompanyCount(company);
     });
@@ -89,20 +106,60 @@ const handleResults = async (page, selector) => {
         let index = 0;
         for (const result of results) {
             const data = await (await result.getProperty('innerText')).jsonValue();
-            addCompanyProperty(companies[index], p, data);
+            if (data) addCompanyProperty(companies[index], p, data);
             index++;
         }
     }
-};
+}; */
 
-const test = async (page) => {
-    let elements = await getAllElements(page, Config.selectors.indeed.results.row);
-    for (const el of elements) {
-        const data = await el.evaluate(el => {
-            compan
-        }, Config);
-        console.log(data);
-    }
+const handleResults = async (page) => {
+   companyResults = await page.evaluate(async (Config, companyResults) => {
+        const addOrIncrement = (company) => {
+            if (companyResults[company] && companyResults[company].count >= 1) {
+                let currCount = companyResults[company].count;
+                currCount++;
+                companyResults[company].count = currCount;
+            } else {
+                companyResults[company] = {
+                    count: 1,
+                    postings: []
+                }
+            }
+        };
+
+        const addPosting = async (company, posting) => {
+            companyResults[company].postings.push(posting);
+        };
+
+        const getElementInnerText = async (el, selector) => {
+            try {
+                const data = el.querySelector(selector).innerText;
+                return data;
+            } catch (err) {
+                return '';
+            }
+        };
+
+        const searchRows = document.querySelectorAll(Config.selectors.indeed.results.row);
+        let properties = Config.selectors.indeed.results.details;
+        let propertyKeys = Object.keys(properties);
+        for (const result of searchRows) {
+            const company = await getElementInnerText(result, Config.selectors.indeed.results.key);
+            if (company) await addOrIncrement(company);
+            if (company) {
+                let posting = {};
+                for (const p of propertyKeys) {
+                    const data = await getElementInnerText(result, properties[p]);
+                    if (data) posting[p] = data;
+                }
+                await addPosting(company, posting);
+            }
+        }
+
+        return companyResults;
+    }, Config, companyResults).catch((err) => {
+        console.log('No results found: ', err);
+   });
 };
 
 /**
@@ -166,13 +223,15 @@ const getCompanies = async (page, selector) => {
 const inputSearchParams = async (page, selector, input, location) => {
     const searchInputs = await getAllElements(page, selector.main);
     // focus clear type
-    searchInputs[0].focus();
-    await Common.clearTextField(page, selector.desc);
-    await Common.type(searchInputs[0], input);
+    for (let i = 0; i < 2; i++) { // do it twice to remove cached
+        searchInputs[0].focus();
+        await Common.clearTextField(page, selector.desc);
+        await Common.type(searchInputs[0], input);
 
-    searchInputs[1].focus();
-    await Common.clearTextField(page, selector.loc);
-    await Common.type(searchInputs[1], location);
+        searchInputs[1].focus();
+        await Common.clearTextField(page, selector.loc);
+        await Common.type(searchInputs[1], location);
+    }
 };
 
 /**
@@ -205,41 +264,45 @@ const submit = async (page, selector) => {
         if (!arg) continue; // skip empty lines
         // assign search inputs
         let searchInputs = arg.split(" ");
-        let input = searchInputs[0] !== "" ? searchInputs[0].match((/[A-Za-z, ]+/))[0] : "";
-        let location = searchInputs[1] !== "" ? searchInputs[1].match((/[A-Za-z, ]+/)) : "";
+        let input;
+        let location;
         try {
+            input = searchInputs[0].match((/[A-Za-z, ]+/))[0]
+        } catch (err) {
+            input = '';
+        }
+        try {
+            location = searchInputs[1].match((/[A-Za-z, ]+/))[0]
+        } catch (err) {
+            location = '';
+        }
+
+        try {
+            let companyResults = {};
             // grab input fields
             await inputSearchParams(page, Config.selectors.indeed.inputs.search, input, location);
             // submit result
             await submit(page, Config.selectors.indeed.inputs.submit);
-            // delay for now
-            await delay(2000);
             // handle popup
-            if (await checkExists(page, Config.selectors.indeed.results.popover)) {
-                await closePopover(page, Config.selectors.indeed.results.closePopover);
-            };
-
-            // await test(page);
+            await handlePopover(page);
 
             // gather results
             let next;
             do {
-                next = await checkNext(page, Config.selectors.indeed.results.next);
-                await handleResults(page, Config.selectors.indeed.results.details);
+                next = await checkNext(page, Config.selectors.indeed.results.next).catch((err) => console.log(err));
+               // await handleResults(page, Config.selectors.indeed.results.details); deprecated
+                await handleResults(page);
                 if (next) {
                     await clickNext(page, Config.selectors.indeed.results.next);
-                    if (await checkExists(page, Config.selectors.indeed.results.popover)) {
-                        await closePopover(page, Config.selectors.indeed.results.closePopover);
-                    };
+                    await handlePopover(page);
                 }
             } while (next);
-
-            // todo: read into excel
-            console.log(companyResults);
         } catch (err) {
             console.log('Error: ', err);
         }
     }
+    // handle results
+    console.log(companyResults);
     // close browser
     await browser.close();
 })();

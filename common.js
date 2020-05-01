@@ -4,6 +4,19 @@ const clearTextField = async (page, selector) => {
     }, selector);
 };
 
+const getElementInnerText = async (element) => {
+    const text = await element.evaluate(node => node.innerText);
+    return text;
+};
+
+const queryElement = async (node, selector) => {
+    let res = node.evaluate(el => {
+        let res = document.querySelector(selector);
+        return res;
+    });
+    return res;
+};
+
 const type = async (element, text) => {
     await element.focus();
     await element.type(text, { delay: 50 });
@@ -23,6 +36,8 @@ const navigateClick = async (page, element, navSelector, opts=false) => {
 
 module.exports = {
     clearTextField,
+    getElementInnerText,
+    queryElement,
     type,
     navigateClick,
     click

@@ -29,23 +29,22 @@ const formatToExcel = (result) => {
     return formatted;
 };
 
-const writeResultsExcel = (results, input, location) => {
-    console.log('writing: ', results);
-    let fileName = format(new Date(), 'MM-dd-yyyy-k:mm:ss') + `_${input}_${location}.xlsx`;
+const writeResultsExcel = (results) => {
+    let fileName = format(new Date(), 'MM-dd-yyyy-k:mm:ss') + `_total.xlsx`;
     try {
         fs.writeFileSync(`./output/${fileName}`);
-        const ws = XLSX.utils.json_to_sheet(formatToExcel(companyResults));
+        const ws = XLSX.utils.json_to_sheet(formatToExcel(results));
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, `${input}_${location}`);
+        XLSX.utils.book_append_sheet(wb, ws, `RESULTS`);
         XLSX.writeFile(wb, `./output/${fileName}`);
     } catch (err) {
         console.log('Failed to write results to excel: ', err);
     }
-}
+};
 
 const createFile = (path) => {
     return fs.writeFileSync(path);
-}
+};
 
 /**
  * Basic navigation
@@ -210,32 +209,23 @@ const submit = async (page, selector) => {
     const args = readFile('./input/input.txt');
     // establish browser and page
     const browser = await puppeteer.launch({
-        headless: true
+        headless: false
     });
     const page = await browser.newPage();
     await page.setViewport({
         width: 1000,
         height: 1000
     });
+
     // navigate to indeed landing page
     await navigateTo(page, Config.urls.indeed);
     // loop through and perform search
     for (const arg of args) {
         if (!arg) continue; // skip empty lines
         // assign search inputs
-        let searchInputs = arg.split(" ");
-        let input;
-        let location;
-        try {
-            input = searchInputs[0].match((/[A-Za-z, ]+/))[0]
-        } catch (err) {
-            input = '';
-        }
-        try {
-            location = searchInputs[1].match((/[A-Za-z, ]+/))[0]
-        } catch (err) {
-            location = '';
-        }
+        let searchInputs = arg.split('+');
+        let input = searchInputs[0];
+        let location = searchInputs[1];
 
         try {
             let companyResults = {};
@@ -262,8 +252,7 @@ const submit = async (page, selector) => {
         }
     }
     // handle results
-    console.log('total company results: ', companyResults);
-    await writeResultsExcel(companyResults, "total", "total");
+    await writeResultsExcel(companyResults);
     // close browser
     await browser.close();
 })();

@@ -1,4 +1,2 @@
-'engineer' 'pittsburgh'
-'engineer' 'boston'
-'engineer' 'montana'
+financial analyst+pittsburgh
 

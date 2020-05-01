@@ -6,6 +6,8 @@
 const puppeteer = require('puppeteer');
 const delay = require('delay');
 const fs = require('fs');
+const { format } = require('date-fns');
+const XLSX = require('xlsx');
 const Common = require('./common');
 const Config = require('./config');
 
@@ -15,6 +17,35 @@ let companyResults = {};
 const readFile = (path) => {
     return fs.readFileSync(path).toString().split("\n");
 };
+
+const formatToExcel = (result) => {
+    let formatted = Object.keys(result).map((key) => {
+        return {
+            company: key,
+            count: result[key].count,
+            postings: JSON.stringify(result[key].postings)
+        }
+    });
+    return formatted;
+};
+
+const writeResultsExcel = (results, input, location) => {
+    console.log('writing: ', results);
+    let fileName = format(new Date(), 'MM-dd-yyyy-k:mm:ss') + `_${input}_${location}.xlsx`;
+    try {
+        fs.writeFileSync(`./output/${fileName}`);
+        const ws = XLSX.utils.json_to_sheet(formatToExcel(companyResults));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, `${input}_${location}`);
+        XLSX.writeFile(wb, `./output/${fileName}`);
+    } catch (err) {
+        console.log('Failed to write results to excel: ', err);
+    }
+}
+
+const createFile = (path) => {
+    return fs.writeFileSync(path);
+}
 
 /**
  * Basic navigation
@@ -87,31 +118,8 @@ const checkNext = async (page, selector) => {
  * The nested loops is a design decision allowing the program to scale as you want to remove and add properties
  * along with the count
  * @param page browser.Page
- * @param selector String
- * @returns {Promise<void>}
+ * @returns {Object}
  */
-/* Deprecated
-const handleResults = async (page, selector) => {
-    const companies = await getCompanies(page, Config.selectors.indeed.results.key);
-    // add company and count to result object
-    if (companies.length < 1) return;
-    companies.forEach((company) => {
-        addCompanyCount(company);
-    });
-    let properties = Object.keys(selector);
-    properties.shift();
-    // add properties
-    for (const p of properties) {
-        const results = await getAllElements(page, selector[p]);
-        let index = 0;
-        for (const result of results) {
-            const data = await (await result.getProperty('innerText')).jsonValue();
-            if (data) addCompanyProperty(companies[index], p, data);
-            index++;
-        }
-    }
-}; */
-
 const handleResults = async (page) => {
    companyResults = await page.evaluate(async (Config, companyResults) => {
         const addOrIncrement = (company) => {
@@ -120,6 +128,7 @@ const handleResults = async (page) => {
                 currCount++;
                 companyResults[company].count = currCount;
             } else {
+                // create default company
                 companyResults[company] = {
                     count: 1,
                     postings: []
@@ -162,55 +171,6 @@ const handleResults = async (page) => {
    });
 };
 
-/**
- * Adds company count
- * @param company String
- */
-const addCompanyCount = (company) => {
-    if (companyResults[company] && companyResults[company].count >= 1) {
-        let currCount = companyResults[company].count;
-        currCount++;
-        companyResults[company].count = currCount;
-    } else {
-        companyResults[company] = {
-            count: 1
-        }
-    }
-};
-
-/**
- * Adds company properties to that company
- * @param company String
- * @param property String
- * @param data String
- */
-const addCompanyProperty =  (company, property, data) => {
-    if (companyResults[company][property]) {
-        let curr = companyResults[company][property];
-        curr.push(data);
-        companyResults[company][property] = curr;
-    } else {
-        let def = [];
-        def.push(data);
-        companyResults[company][property] = def;
-    }
-};
-
-/**
- * Returns array of companies
- * @param page browser.Page
- * @param selector String
- * @returns {Promise<[]>}
- */
-const getCompanies = async (page, selector) => {
-    let companies = [];
-    const rows = await getAllElements(page, selector);
-    for (const row of rows) {
-        const data = await (await row.getProperty('innerText')).jsonValue();
-        companies.push(data);
-    }
-    return companies;
-};
 
 /**
  * Clears the input field, then types the result
@@ -302,7 +262,8 @@ const submit = async (page, selector) => {
         }
     }
     // handle results
-    console.log(companyResults);
+    console.log('total company results: ', companyResults);
+    await writeResultsExcel(companyResults, "total", "total");
     // close browser
     await browser.close();
 })();

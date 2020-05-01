@@ -1,5 +1,3 @@
-'robot' 'pittsburgh'
-'engineer' 'boston'
-'financial analyst' 'montana'
+'engineer' 'pittsburgh'
 
 

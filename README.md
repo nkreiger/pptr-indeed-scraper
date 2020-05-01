@@ -7,11 +7,6 @@ npm install
 npm run start
 ```
 
-## start with custom params
-```
-node index.js Google Pittsburgh,PA
-```
-
 ## input.txt specifications
 "position" "location"
 

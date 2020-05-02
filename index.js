@@ -47,10 +47,6 @@ const writeResultsExcel = (results) => {
     }
 };
 
-const createFile = (path) => {
-    return fs.writeFileSync(path);
-};
-
 /**
  * Basic navigation
  * @param page browser.Page
@@ -62,14 +58,8 @@ const navigateTo = async (page, url) => {
 };
 
 const clickNext = async (page, selector) => {
-    const spanBtns = await getAllElements(page, selector);
-    let nxtBtn;
-    if (spanBtns.length  > 1) {
-        nxtBtn = spanBtns[1];
-    } else {
-        nxtBtn = spanBtns[0];
-    }
-    await nxtBtn.click();
+    const next = await getNext(page, selector);
+    await Common.click(next, 1);
     await delay(2000);
 };
 
@@ -107,14 +97,22 @@ const checkExists = async (page, selector) => {
     return !!el;
 };
 
-const checkNext = async (page, selector) => {
-    // todo: use evaluate to check if next actually exists since no unique id
-    const elements = await getAllElements(page, selector);
+const getNext = async (page, selector) => {
+    // check if next arrow exists, ret el
+    const element = await getElement(page, selector.arrow);
+    if (element) return element;
+    // check if next text exists, ret el
+    const elements = await getAllElements(page, selector.span);
     for (const el of elements) {
         const text = await Common.getElementInnerText(el);
-        if (text.toLowerCase().includes('next')) return true;
+        if (text.toLowerCase().includes('next')) return el;
     }
-    return false;
+    return null;
+};
+
+const checkNext = async (page, selector) => {
+    const next = await getNext(page, selector);
+    return !!next;
 };
 
 /**
@@ -175,7 +173,6 @@ const handleResults = async (page) => {
    });
 };
 
-
 /**
  * Clears the input field, then types the result
  * @param page browser.Page
@@ -214,13 +211,15 @@ const submit = async (page, selector) => {
     const args = readFile('./input/input.txt');
     // establish browser and page
     const browser = await puppeteer.launch({
-        headless: false
+        headless: true
     });
     const page = await browser.newPage();
+
     await page.setViewport({
         width: 1000,
         height: 1000
     });
+
 
     // navigate to indeed landing page
     await navigateTo(page, Config.urls.indeed);
@@ -233,7 +232,6 @@ const submit = async (page, selector) => {
         let location = searchInputs[1];
 
         try {
-            let companyResults = {};
             // grab input fields
             await inputSearchParams(page, Config.selectors.indeed.inputs.search, input, location);
             // submit result
@@ -245,7 +243,6 @@ const submit = async (page, selector) => {
             let next;
             do {
                 next = await checkNext(page, Config.selectors.indeed.results.next).catch((err) => console.log(err));
-               // await handleResults(page, Config.selectors.indeed.results.details); deprecated
                 await handleResults(page);
                 if (next) {
                     await clickNext(page, Config.selectors.indeed.results.next);

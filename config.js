@@ -9,7 +9,10 @@ const selectors = {
             submit: "button[class$='WhatWhere-button'],input[class='input_submit']"
         },
         results: {
-            next: "span[class='np']",
+            next: {
+                span: "span[class='pn']",
+                arrow: "a[aria-label*='Next']"
+            },
             row: "div[class*='unifiedRow']",
             details: {
                 job_title: "h2[class='title']",

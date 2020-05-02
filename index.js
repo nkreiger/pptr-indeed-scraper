@@ -243,7 +243,6 @@ const submit = async (page, selector) => {
             let next;
             do {
                 next = await checkNext(page, Config.selectors.indeed.results.next).catch((err) => console.log(err));
-               // await handleResults(page, Config.selectors.indeed.results.details); deprecated
                 await handleResults(page);
                 if (next) {
                     await clickNext(page, Config.selectors.indeed.results.next);

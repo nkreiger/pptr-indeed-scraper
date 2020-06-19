@@ -36,8 +36,6 @@ const writeResultsExcel = (results) => {
         if (!fs.existsSync('./output')){
             fs.mkdirSync('./output');
         }
-
-        fs.writeFileSync(`./output/${fileName}`);
         const ws = XLSX.utils.json_to_sheet(formatToExcel(results));
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, `RESULTS`);
@@ -211,7 +209,7 @@ const submit = async (page, selector) => {
     const args = readFile('./input/input.txt');
     // establish browser and page
     const browser = await puppeteer.launch({
-        headless: true
+        headless: false
     });
     const page = await browser.newPage();
 
@@ -253,6 +251,7 @@ const submit = async (page, selector) => {
             console.log('Error: ', err);
         }
     }
+    console.log('Results: ', companyResults)
     // handle results
     await writeResultsExcel(companyResults);
     // close browser

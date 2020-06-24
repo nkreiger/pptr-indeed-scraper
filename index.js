@@ -209,7 +209,7 @@ const submit = async (page, selector) => {
     const args = readFile('./input/input.txt');
     // establish browser and page
     const browser = await puppeteer.launch({
-        headless: false
+        headless: true
     });
     const page = await browser.newPage();
 
@@ -240,18 +240,21 @@ const submit = async (page, selector) => {
             // gather results
             let next;
             do {
-                next = await checkNext(page, Config.selectors.indeed.results.next).catch((err) => console.log(err));
-                await handleResults(page);
-                if (next) {
-                    await clickNext(page, Config.selectors.indeed.results.next);
-                    await handlePopover(page);
+                try {
+                    next = await checkNext(page, Config.selectors.indeed.results.next).catch((err) => console.log(err));
+                    await handleResults(page);
+                    if (next) {
+                        await clickNext(page, Config.selectors.indeed.results.next);
+                        await handlePopover(page);
+                    }
+                } catch (err) {
+                    console.log('Error: ', err)
                 }
             } while (next);
         } catch (err) {
             console.log('Error: ', err);
         }
     }
-    console.log('Results: ', companyResults)
     // handle results
     await writeResultsExcel(companyResults);
     // close browser

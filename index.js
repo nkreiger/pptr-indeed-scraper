@@ -64,7 +64,9 @@ const clickNext = async (page, selector) => {
 const handlePopover = async (page) => {
     await delay(2000);
     if (await checkExists(page, Config.selectors.indeed.results.popover)) {
-        await closePopover(page, Config.selectors.indeed.results.closePopover);
+        await closePopover(page, Config.selectors.indeed.results.closePopover).catch((err) => {
+            console.log('Error closing popover')
+        });
         await delay(1000);
         return true;
     }
